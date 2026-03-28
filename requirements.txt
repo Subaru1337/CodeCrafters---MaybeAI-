@@ -1,0 +1,8 @@
+sqlalchemy
+psycopg2-binary
+APScheduler
+requests
+anthropic
+openai
+pdfplumber
+python-dotenv
