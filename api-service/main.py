@@ -5,7 +5,7 @@ import os
 
 import models
 from db import engine
-from routers import auth_router, profile_router, portfolio_router
+from routers import auth_router, profile_router, portfolio_router, chat_router
 
 # Create all database tables based on models.py
 models.Base.metadata.create_all(bind=engine)
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(profile_router.router)
 app.include_router(portfolio_router.router)
+app.include_router(chat_router.router)
 
 @app.get("/health")
 def health_check():

@@ -10,3 +10,4 @@ passlib[bcrypt]
 python-dotenv
 pydantic
 pydantic-settings
+google-genai

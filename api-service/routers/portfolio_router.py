@@ -82,3 +82,54 @@ def get_latest_portfolio(
     if not portfolio:
         raise HTTPException(status_code=404, detail="No portfolio found for this user.")
     return portfolio
+
+@router.post("/simulate", response_model=schemas.SimulationResponse)
+def simulate_portfolio(
+    sim_request: schemas.SimulationRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Runs a 'What-If' scenario. Temporarily overrides investor constraints and safely runs 
+    the Convex Optimizer to see what WOULD happen. Returns the new portfolio + deltas 
+    compared to their baseline active portfolio. Does NOT save to database.
+    """
+    profile = current_user.profile
+    if not profile:
+        raise HTTPException(status_code=400, detail="Investor profile required to simulate.")
+        
+    # Get current latest portfolio to calculate diff deltas
+    baseline_portfolio = db.query(models.SavedPortfolio)\
+                           .filter(models.SavedPortfolio.user_id == current_user.id)\
+                           .order_by(desc(models.SavedPortfolio.created_at))\
+                           .first()
+                           
+    # Generate an ephemeral mock profile combining the DB profile + the requested overrides
+    mock_profile = {
+        "risk_level": sim_request.risk_level_override or getattr(profile, 'risk_level', 3),
+        "regulatory_constraints": getattr(profile, 'regulatory_constraints', [])
+    }
+    
+    # 1. Fetch exact asset universe the user is eligible for under the NEW mock profile
+    asset_names, expected_returns, cov_matrix = asset_data.get_available_assets(mock_profile)
+    
+    # 2. Re-run optimization instantly
+    result = optimizer.optimize_portfolio(mock_profile, asset_names, expected_returns, cov_matrix)
+    
+    if not result:
+        raise HTTPException(status_code=400, detail="The simulation produced an unsolvable mathematical configuration.")
+        
+    # 3. Formulate response
+    resp = schemas.SimulationResponse(
+        new_allocation=result["allocation"],
+        new_expected_return=result["expected_return"],
+        new_expected_volatility=result["expected_volatility"],
+        new_sharpe_ratio=result["sharpe_ratio"]
+    )
+    
+    # 4. If they have a baseline portfolio, inject the mathematical deltas
+    if baseline_portfolio:
+        resp.delta_return = result["expected_return"] - baseline_portfolio.expected_return
+        resp.delta_volatility = result["expected_volatility"] - baseline_portfolio.expected_volatility
+        
+    return resp
