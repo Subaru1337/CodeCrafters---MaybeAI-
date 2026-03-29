@@ -5,7 +5,7 @@ import os
 
 import models
 from db import engine
-from routers import auth_router, profile_router, portfolio_router, chat_router
+from routers import auth_router, profile_router, portfolio_router, chat_router, research_router, insights_router, goals_router, watchlist_router, collab_router
 
 # Create all database tables based on models.py
 models.Base.metadata.create_all(bind=engine)
@@ -19,10 +19,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Setup CORS (Task 9 placeholder, basic setup for now)
-origins = [
-    os.getenv("FRONTEND_URL", "http://localhost:5173"),
-]
+# Hackathon wildcard CORS to prevent any React fetch issues
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,6 +34,11 @@ app.include_router(auth_router.router)
 app.include_router(profile_router.router)
 app.include_router(portfolio_router.router)
 app.include_router(chat_router.router)
+app.include_router(research_router.router)
+app.include_router(insights_router.router)
+app.include_router(goals_router.router)
+app.include_router(watchlist_router.router)
+app.include_router(collab_router.router)
 
 @app.get("/health")
 def health_check():

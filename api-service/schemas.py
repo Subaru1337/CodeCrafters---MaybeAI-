@@ -1,6 +1,48 @@
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional, Dict
+
+# ── Goals ──────────────────────────────────────────
+class GoalCreate(BaseModel):
+    goal_name: str
+    target_amount: float
+    target_date: date
+    initial_capital: float
+    current_value: float
+    currency: str = "USD"
+
+class GoalOut(GoalCreate):
+    id: int
+    user_id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class GoalSnapshotCreate(BaseModel):
+    current_value: float
+    note: Optional[str] = None
+
+class GoalSnapshotOut(BaseModel):
+    id: int
+    goal_id: int
+    current_value: float
+    note: Optional[str] = None
+    recorded_at: datetime
+    class Config:
+        from_attributes = True
+
+# ── Watchlist ───────────────────────────────────────
+class WatchlistCreate(BaseModel):
+    company_id: int
+
+class WatchlistOut(BaseModel):
+    id: int
+    user_id: int
+    company_id: int
+    added_at: datetime
+    class Config:
+        from_attributes = True
+
 
 class PortfolioOut(BaseModel):
     id: int
@@ -73,3 +115,30 @@ class ChatResponse(BaseModel):
     reply: str = Field(..., description="The AI's text response")
     run_simulation: bool = Field(default=False, description="Flag for the frontend to trigger a What-If simulation overlay")
     suggested_overrides: Optional[Dict[str, float]] = Field(default=None, description="Parameters to pass to /simulate if run_simulation is true")
+
+# ── Collaborative Portfolios ────────────────────────────────
+class SharePortfolioRequest(BaseModel):
+    collaborator_email: str
+    permission: str = Field(default="view", pattern="^(view|edit)$")
+
+class CollaboratorOut(BaseModel):
+    id: int
+    portfolio_id: int
+    collaborator_email: str
+    permission: str
+    invited_at: datetime
+    class Config:
+        from_attributes = True
+
+class CommentCreate(BaseModel):
+    comment_text: str = Field(..., min_length=1)
+
+class CommentOut(BaseModel):
+    id: int
+    portfolio_id: int
+    user_id: int
+    commenter_email: str
+    comment_text: str
+    created_at: datetime
+    class Config:
+        from_attributes = True

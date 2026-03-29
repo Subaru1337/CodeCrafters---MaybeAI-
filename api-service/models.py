@@ -15,6 +15,7 @@ class User(Base):
     portfolios = relationship("SavedPortfolio", back_populates="user")
     watchlist = relationship("WatchlistItem", back_populates="user")
     goals = relationship("InvestmentGoal", back_populates="user")
+    goal_snapshots = relationship("GoalSnapshot", back_populates="user")
 
 
 class InvestorProfile(Base):
@@ -81,6 +82,22 @@ class InvestmentGoal(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="goals")
+    snapshots = relationship("GoalSnapshot", back_populates="goal", cascade="all, delete-orphan")
+
+
+class GoalSnapshot(Base):
+    """Tracks a point-in-time snapshot of a goal's current_value for progress history."""
+    __tablename__ = "goal_snapshots_api"
+
+    id = Column(Integer, primary_key=True, index=True)
+    goal_id = Column(Integer, ForeignKey("investment_goals.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    current_value = Column(Float, nullable=False)
+    note = Column(String, nullable=True)
+    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    goal = relationship("InvestmentGoal", back_populates="snapshots")
+    user = relationship("User", back_populates="goal_snapshots")
 
 
 class PortfolioCollaborator(Base):
